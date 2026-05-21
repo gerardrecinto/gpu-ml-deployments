@@ -1,14 +1,20 @@
-FROM nvidia/cuda:11.4-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:11.4.3-cudnn8-runtime-ubuntu20.04
 
-RUN apt-get update && apt-get install -y \
-    python3-pip && \
-    pip3 install torch torchvision
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Copy your PyTorch script into the container
-COPY train.py /workspace/
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace/
+RUN pip3 install --no-cache-dir --upgrade pip \
+    && pip3 install --no-cache-dir \
+        "torch==1.12.1+cu116" \
+        "torchvision==0.13.1+cu116" \
+        --extra-index-url https://download.pytorch.org/whl/cu116
 
-# Command to run the PyTorch script
+WORKDIR /workspace
+COPY train.py .
+
 CMD ["python3", "train.py"]
-

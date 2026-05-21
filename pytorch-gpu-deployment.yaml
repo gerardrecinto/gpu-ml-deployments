@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pytorch-gpu-deployment
+  namespace: gpu-workloads
+  labels:
+    app: pytorch-gpu-app
 spec:
   replicas: 2
   selector:
@@ -13,10 +16,19 @@ spec:
         app: pytorch-gpu-app
     spec:
       containers:
-      - name: pytorch-gpu-container
-        image: gerardrecinto/pytorch-gpu:latest
-        resources:
-          limits:
-            nvidia.com/gpu: 1
-        command: ["python3", "train.py"]
-
+        - name: pytorch-gpu
+          image: gerardrecinto/pytorch-gpu:latest
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "2"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+          command: ["python3", "train.py"]
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
