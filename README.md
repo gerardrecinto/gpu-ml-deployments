@@ -1,5 +1,13 @@
 # GPU App Deployments
 
+![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-1.12%2B-EE4C2C?logo=pytorch&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-GPU%20Workloads-326CE5?logo=kubernetes&logoColor=white)
+![CUDA 11.4](https://img.shields.io/badge/CUDA-11.4-76B900?logo=nvidia&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-22c55e)
+
+![Demo](docs/assets/demo.gif)
+
 Containerized PyTorch training workloads deployed on Kubernetes with GPU scheduling, plus Slurm support for HPC clusters.
 
 ## Files
@@ -11,27 +19,6 @@ Containerized PyTorch training workloads deployed on Kubernetes with GPU schedul
 | `pytorch-gpu-deployment.yaml` | K8s Deployment: `nvidia.com/gpu: 1` per pod, resource requests + limits |
 | `pytorch_job.sh` | Slurm batch job script |
 | `gres.conf` / `slurm.conf` | Slurm GPU resource config |
-
-## Demo output
-
-```
-$ python3 train.py --epochs 10 --lr 0.01 --batch-size 64
-Training on: cuda
-Epochs: 10 | LR: 0.01 | Batch: 64
-----------------------------------------
-Epoch [ 1/10]  loss: 1.163555
-Epoch [ 2/10]  loss: 1.149995
-Epoch [ 3/10]  loss: 1.130859
-Epoch [ 4/10]  loss: 1.106126
-Epoch [ 5/10]  loss: 1.089103
-Epoch [ 6/10]  loss: 1.077913
-Epoch [ 7/10]  loss: 1.068456
-Epoch [ 8/10]  loss: 1.050132
-Epoch [ 9/10]  loss: 1.039331
-Epoch [10/10]  loss: 1.015603
-----------------------------------------
-Training complete.
-```
 
 ## Running on Kubernetes
 
