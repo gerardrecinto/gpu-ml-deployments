@@ -1,5 +1,7 @@
 # GPU App Deployments
 
+![GPU App Deployments logo](docs/assets/logo.svg)
+
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-1.12%2B-EE4C2C?logo=pytorch&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GPU%20Workloads-326CE5?logo=kubernetes&logoColor=white)
@@ -9,6 +11,8 @@
 ![Demo](docs/assets/demo.gif)
 
 Containerized PyTorch training workloads deployed on Kubernetes with GPU scheduling, plus Slurm support for HPC clusters.
+
+Commercial angle and consulting hooks: [docs/go-to-market.md](docs/go-to-market.md).
 
 ## Files
 
