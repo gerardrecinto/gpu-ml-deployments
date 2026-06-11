@@ -1,18 +1,26 @@
 # GPU App Deployments
 
-![GPU App Deployments logo](docs/assets/logo.svg)
-
+![CI](https://github.com/gerardrecinto/gpu-ml-deployments/actions/workflows/ci.yml/badge.svg)
+![Release](https://github.com/gerardrecinto/gpu-ml-deployments/actions/workflows/release.yml/badge.svg)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-1.12%2B-EE4C2C?logo=pytorch&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GPU%20Workloads-326CE5?logo=kubernetes&logoColor=white)
 ![CUDA 11.4](https://img.shields.io/badge/CUDA-11.4-76B900?logo=nvidia&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-22c55e)
 
+![GPU App Deployments logo](docs/assets/logo.svg)
+
 ![Demo](docs/assets/demo.gif)
 
 Containerized PyTorch training workloads deployed on Kubernetes with GPU scheduling, plus Slurm support for HPC clusters.
 
 Commercial angle and consulting hooks: [docs/go-to-market.md](docs/go-to-market.md).
+
+## Docker
+
+```bash
+docker pull ghcr.io/gerardrecinto/gpu-ml-deployments:latest
+```
 
 ## Files
 
@@ -60,6 +68,21 @@ squeue -u $USER
 ```
 
 The `gres.conf` declares GPU resources per node. `slurm.conf` sets `GresTypes`.
+
+## train.py flags
+
+```bash
+# Set a fixed random seed for reproducible runs
+python train.py --seed 42
+
+# Save the trained model to a specific path
+python train.py --output-model /models/run1.pt
+
+# Both together
+python train.py --seed 42 --output-model /models/run1.pt
+```
+
+`--seed` sets `torch.manual_seed` and `random.seed` before training starts. `--output-model` writes the final state dict to the given path after training completes.
 
 ## CI/CD Pipeline
 
