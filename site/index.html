@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gpu-ml-deployments: PyTorch on Kubernetes and Slurm</title>
+<meta name="description" content="Check whether GPU pods will schedule, test that Slurm GPU config agrees, and build a train.py command. Real manifests, Dockerfile and Jenkinsfile from the repo.">
+<meta property="og:title" content="gpu-ml-deployments">
+<meta property="og:description" content="Check whether GPU pods will schedule, test that Slurm GPU config agrees, and build a train.py command. Real manifests, Dockerfile and Jenkinsfile from the repo.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2322c55e'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+
+:root{--bg:#f8fafc;--panel:#fff;--panel2:#f1f5f9;--line:#e2e8f0;--fg:#0f172a;--mute:#475569;--brand:#15803d;--brand-bg:#dcfce7;--ok:#047857;--ok-bg:#d1fae5;--err:#b91c1c;--err-bg:#fee2e2;--code:#0b1220;--code-fg:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#4ade80;--brand-bg:#0b3318;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}}
+:root[data-theme=dark]{--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#4ade80;--brand-bg:#0b3318;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+code,pre,textarea,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--fg);text-decoration:none}
+.logo i{width:22px;height:22px;border-radius:6px;background:#22c55e;display:inline-block}
+nav .links{display:flex;gap:18px;align-items:center;font-size:14px}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--fg);background:var(--panel);cursor:pointer;font-size:15px}
+.btn.primary{background:#22c55e;border-color:#22c55e;color:#04210d}
+.btn.primary:hover{background:#4ade80}
+.btn:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #22c55e;outline-offset:2px}
+.hero{padding:72px 0 40px;text-align:center}
+.pill{display:inline-block;font-size:13px;color:var(--brand);background:var(--brand-bg);padding:4px 12px;border-radius:99px;margin-bottom:20px;font-weight:600}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.08;margin:0 0 18px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--brand)}
+.lede{max-width:700px;margin:0 auto 28px;color:var(--mute);font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:36px;color:var(--mute);font-size:14px}
+.stats b{display:block;color:var(--fg);font-size:22px}
+section{padding:56px 0}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 28px;max-width:720px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.lab{grid-template-columns:minmax(0,1fr)}nav .links .hide-s{display:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 12px system-ui;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;text-transform:none;letter-spacing:0}
+.chip[aria-pressed=true]{background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}
+#log{display:block;width:100%;height:420px;border:0;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto}
+.src{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--mute);flex-wrap:wrap}
+.out{min-height:420px}
+.status{padding:16px;color:var(--mute);font-size:14px}
+.verdict{padding:18px 16px;border-bottom:1px solid var(--line);background:var(--err-bg)}
+.verdict.unknown{background:var(--panel2)}
+.verdict b{display:block;font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--err)}
+.verdict.unknown b{color:var(--mute)}
+.verdict span{font-size:14px;color:var(--mute)}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden;max-width:260px;display:inline-block;vertical-align:middle;margin-right:10px;width:60%}
+.bar i{display:block;height:100%;background:#22c55e}
+.site{padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.site:last-child{border:0}
+.site code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.fix{background:var(--ok-bg);color:var(--ok);padding:10px 12px;border-radius:8px;font-size:14px}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:860px){.steps{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.step .n{width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step h3{margin:0 0 6px;font-size:17px}
+.step p{margin:0;color:var(--mute);font-size:15px}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow-x:auto;max-width:100%}
+table{width:100%;min-width:560px;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);background:var(--panel2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:ui-monospace,monospace;font-weight:700;white-space:nowrap}
+.install pre{background:var(--code);color:var(--code-fg);padding:16px;border-radius:12px;overflow-x:auto;font-size:13.5px;margin:0 0 12px}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.limits{background:var(--panel);border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:10px;padding:16px 20px}
+.limits ul{margin:8px 0 0;padding-left:20px;color:var(--mute)}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+.inc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:16px 18px;min-width:0}
+.inc h3{margin:0 0 6px;font-size:16px}
+.inc p{margin:0 0 8px;color:var(--mute);font-size:14.5px}
+.inc pre{margin:8px 0 0;background:var(--code);color:var(--code-fg);padding:10px 12px;border-radius:8px;font-size:12px;overflow-x:auto}
+.incs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+pre.term{margin:0;background:var(--code);color:var(--code-fg);padding:14px 16px;font-size:12.5px;line-height:1.55;overflow-x:auto;white-space:pre}
+.term .hl{color:#fbbf24}
+.term .ok{color:#34d399}
+.term .bad{color:#f87171}
+.term .dim{color:#64748b}
+.player{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);align-items:center}
+.cap{font-size:13px;color:var(--mute);padding:10px 16px;border-top:1px solid var(--line);min-height:44px}
+.sim{display:inline-block;font:700 11px ui-monospace,monospace;color:var(--brand);background:var(--brand-bg);padding:2px 8px;border-radius:6px}
+.real{display:inline-block;font:700 11px ui-monospace,monospace;color:var(--ok);background:var(--ok-bg);padding:2px 8px;border-radius:6px}
+.note code,.sub code,.cap code{overflow-wrap:anywhere}
+.tcat{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;padding:14px}
+.tcat div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;background:var(--panel2);min-width:0}
+.tcat b{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all;display:block}
+.tcat span{color:var(--mute)}
+.ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
+.ctrl label{font-size:13px;color:var(--mute)}
+.ctrl select,.ctrl input[type=number],.ctrl input[type=text]{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+.ctrl input[type=number]{width:72px}
+.bars{padding:14px 16px;display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:90px 1fr 56px;gap:8px;align-items:center;font:12px ui-monospace,monospace}
+.bar i{display:block;height:14px;border-radius:4px;background:var(--brand);min-width:2px}
+.bar i.zero{background:var(--err);opacity:.35;width:100%}
+.ta{display:block;width:100%;border:0;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto;font-family:ui-monospace,monospace;height:150px}
+.lbl{display:block;padding:8px 14px;font-size:12px;color:var(--mute);background:var(--panel2);border-bottom:1px solid var(--line);border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><i></i>gpu-ml-deployments</a>
+  <div class="links"><a href="#try" class="hide-s">Try it</a><a href="#install" class="hide-s">Install</a><a class="btn" href="https://github.com/gerardrecinto/gpu-ml-deployments">GitHub</a></div>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <h1>One training image. <em>Three ways</em> to put it on a GPU.</h1>
+  <p class="lede">Containerized PyTorch training deployed on Kubernetes with whole-GPU scheduling, as a Kubeflow PyTorchJob for multi-node runs, and on Slurm for HPC. A Jenkins pipeline builds, deploys and rolls back.</p>
+  <div class="cta"><a class="btn primary" href="#try">Check capacity</a><a class="btn" href="#install">Run it</a></div>
+  <div class="stats"><div><b>3</b>ways to schedule</div><div><b>1</b>GPU per pod in the manifests</div><div><b>0</b>GPUs needed to run the tests</div></div>
+</div></header>
+
+
+<section id="try"><div class="wrap">
+  <h2>Will the GPU pods schedule?</h2>
+  <p class="sub">Each pod asks for one whole GPU, so capacity is arithmetic before it is anything else. Pick a workload and a cluster. The defaults come from the repo's real manifests, which the page loads. <span class="sim">SIMULATED MODEL</span> It counts GPUs only. The real scheduler also checks CPU, memory, taints and quotas.</p>
+  <div class="lab">
+    <div class="card"><h3><span>Cluster and workload</span></h3>
+      <div class="ctrl">
+        <label for="wl">workload</label>
+        <select id="wl"><option value="dep">Deployment</option><option value="job">Kubeflow PyTorchJob</option></select>
+        <label for="nodes">GPU nodes</label><input id="nodes" type="number" min="0" max="12" value="1">
+        <label for="gpn">GPUs per node</label><input id="gpn" type="number" min="1" max="8" value="1">
+      </div>
+      <div class="sec" id="plan" aria-live="polite"><div class="status" id="boot">Loading the manifests...</div></div>
+    </div>
+    <div class="card"><h3><span>Slurm: do the two files agree?</span><span class="sim">PAGE-SIDE CHECK</span></h3>
+      <label class="lbl" for="slurm">slurm.conf</label><textarea class="ta" id="slurm" spellcheck="false" style="height:56px"></textarea>
+      <label class="lbl" for="gres">gres.conf</label><textarea class="ta" id="gres" spellcheck="false" style="height:56px"></textarea>
+      <label class="lbl" for="sb">pytorch_job.sh (the GPU request line)</label><textarea class="ta" id="sb" spellcheck="false" style="height:56px"></textarea>
+      <pre class="term" id="slchk" aria-live="polite"></pre>
+    </div>
+  </div>
+  <p class="note">The README says <code>slurm.conf</code> sets <code>Gres=gpu:N</code> for a node and <code>gres.conf</code> declares the device files, and the two must agree. The check above is written for this page. The repo does not ship it.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Build the training command</h2>
+  <p class="sub">The flags are read from the real <code>train.py</code> argparse block. Pick values and copy the command, or the container args for a pod.</p>
+  <div class="card"><h3><span>train.py flags</span></h3>
+    <div class="ctrl" id="flags"></div>
+    <pre class="term" id="cmd" aria-live="polite"></pre>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>The real files</h2>
+  <p class="sub">Everything below is loaded from the repo at deploy time.</p>
+  <div class="card"><h3><span id="fname">pytorch-gpu-deployment.yaml</span>
+    <span class="tools" id="ftabs" role="group" aria-label="Files"></span></h3>
+    <pre class="term" id="fview" style="max-height:440px;overflow:auto"></pre>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>One image</h3><p>A CUDA 12.1 runtime image with torch from the cu121 wheel index. <code>train.py</code> uses the GPU when it is there and falls back to CPU when it is not.</p></div>
+    <div class="step"><div class="n">2</div><h3>Two ways to schedule</h3><p>A Kubernetes Deployment asking for <code>nvidia.com/gpu: 1</code> per pod, a Kubeflow PyTorchJob for multi-node training, or an sbatch script on Slurm.</p></div>
+    <div class="step"><div class="n">3</div><h3>One pipeline</h3><p>The Jenkinsfile builds and pushes the image on main, applies the manifest, waits for the rollout and rolls back on timeout.</p></div>
+  </div>
+</div></section>
+
+<section id="install" class="install"><div class="wrap">
+  <h2>Run it yourself</h2>
+  <p class="sub">The tests run on CPU, no GPU needed.</p>
+  <div class="cols2">
+    <div>
+<pre>pip install -r requirements-dev.txt
+pytest -v
+
+kubectl create namespace gpu-workloads
+kubectl apply -f pytorch-gpu-deployment.yaml</pre>
+    </div>
+    <div>
+<pre>kubectl apply -f pytorch-distributed-job.yaml
+
+sbatch pytorch_job.sh
+squeue -u $USER</pre>
+      <p class="note">The device plugin or GPU Operator must be installed first. The PyTorchJob needs the Kubeflow Training Operator.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="limits"><strong>What this does not do</strong><ul>
+    <li>The training job is a small demo model on random data. It exists to exercise the deployment, not to train anything useful.</li>
+    <li>This page has no GPU and runs no PyTorch. The planner and the Slurm check are page-side arithmetic.</li>
+    <li>The image and registry names in the manifests and Jenkinsfile are placeholders for your own.</li>
+    <li>On failure the Jenkinsfile calls an OpenAI-based triage step from the shared library.</li>
+  </ul></div>
+</div></section>
+
+
+<footer><div class="wrap">
+  <span>gpu-ml-deployments. Built by <a href="https://github.com/gerardrecinto">Gerard Recinto</a>.</span>
+  <span><a href="https://github.com/gerardrecinto/gpu-ml-deployments">Source</a> &middot; <a href="https://github.com/gerardrecinto/gpu-ml-deployments/releases">Releases</a></span>
+</div></footer>
+
+<script>
+
+(() => {
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const track = (n) => { try { if (window.plausible) window.plausible(n); } catch (e) {} };
+
+  const F = {};
+  const NAMES = [["pytorch-gpu-deployment.yaml", "pytorch-gpu-deployment.yaml"], ["pytorch-distributed-job.yaml", "pytorch-distributed-job.yaml"], ["pytorch_job.sh", "pytorch_job.sh"], ["slurm.conf", "slurm.conf"], ["gres.conf", "gres.conf"], ["Dockerfile", "Dockerfile"], ["Jenkinsfile", "Jenkinsfile"], ["train.py", "train.py"]];
+  let dep = { replicas: 2, gpu: 1 }, job = { master: 1, workers: 2, gpu: 1 };
+
+  function plan() {
+    const nodes = Math.max(0, +$("nodes").value || 0), gpn = Math.max(1, +$("gpn").value || 1), cap = nodes * gpn;
+    const pods = $("wl").value === "dep" ? [["pytorch-gpu", dep.replicas, dep.gpu]] : [["master", job.master, job.gpu], ["worker", job.workers, job.gpu]];
+    const list = []; pods.forEach(([n, c, g]) => { for (let i = 0; i < c; i++) list.push({ name: n + "-" + i, gpu: g }); });
+    let free = Array.from({ length: nodes }, () => gpn); const placed = [], pending = [];
+    list.forEach((p) => { const i = free.findIndex((f) => f >= p.gpu); if (i >= 0) { free[i] -= p.gpu; placed.push([p, i]); } else pending.push(p); });
+    const need = list.reduce((a, p) => a + p.gpu, 0);
+    const boxes = Array.from({ length: nodes }, (_, i) => `<div class="obj" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0"><b>node ${i + 1}</b> <span class="cnt">${gpn - free[i]} of ${gpn} GPUs used</span><br>${placed.filter((x) => x[1] === i).map((x) => `<code>${esc(x[0].name)}</code>`).join(" ") || '<span class="cnt">idle</span>'}</div>`).join("");
+    $("plan").innerHTML = `<div>The workload asks for <b>${need}</b> GPU${need === 1 ? "" : "s"}. The cluster has <b>${cap}</b>.</div>` + (pending.length ? `<div style="margin:8px 0;color:var(--err)"><b>${pending.length} pod${pending.length === 1 ? " stays" : "s stay"} Pending:</b> ${pending.map((p) => esc(p.name)).join(", ")}. Add GPU nodes or lower the replica count.</div>` : '<div style="margin:8px 0;color:var(--ok)"><b>Everything fits.</b></div>') + boxes;
+  }
+  ["wl", "nodes", "gpn"].forEach((id) => $(id).addEventListener("input", () => { plan(); track("gpu_plan"); }));
+
+  function slurm() {
+    const sl = $("slurm").value, gr = $("gres").value, sb = $("sb").value, out = [];
+    const nodeGres = {}; sl.split("\n").forEach((l) => { const n = /NodeName=(\S+)/.exec(l), g = /Gres=gpu(?::\w+)?:(\d+)/.exec(l); if (n && g) nodeGres[n[1]] = +g[1]; });
+    const devs = {}; gr.split("\n").forEach((l) => { const n = /NodeName=(\S+)/.exec(l), f = /File=\/dev\/nvidia(?:\[(\d+)-(\d+)\]|(\d+))/.exec(l); if (n && f) devs[n[1]] = f[1] != null ? (+f[2] - +f[1] + 1) : 1; });
+    const names = new Set([...Object.keys(nodeGres), ...Object.keys(devs)]);
+    if (!names.size) out.push('<span class="bad">No node lines found.</span> Expect <code>NodeName=... Gres=gpu:N</code> in slurm.conf and <code>NodeName=... File=/dev/nvidia[0-1]</code> in gres.conf.');
+    names.forEach((n) => { const a = nodeGres[n], b = devs[n]; if (a == null) out.push(`<span class="bad">${esc(n)}</span>: in gres.conf but not in slurm.conf`); else if (b == null) out.push(`<span class="bad">${esc(n)}</span>: slurm.conf says ${a} GPU(s), gres.conf lists no devices`); else out.push(a === b ? `<span class="ok">${esc(n)}</span>: slurm.conf Gres=gpu:${a}, gres.conf ${b} device file(s). Agree.` : `<span class="bad">${esc(n)}</span>: slurm.conf Gres=gpu:${a} but gres.conf lists ${b} device file(s). Mismatch.`); });
+    const req = /--gres=gpu(?::\w+)?:(\d+)/.exec(sb); const most = Math.max(0, ...Object.values(nodeGres));
+    if (req) out.push(+req[1] <= most ? `job asks for ${req[1]} GPU(s), a node has ${most}. <span class="ok">Fits.</span>` : `job asks for ${req[1]} GPU(s) but the largest node has ${most}. <span class="bad">It can never start.</span>`);
+    $("slchk").innerHTML = out.join("\n");
+  }
+  ["slurm", "gres", "sb"].forEach((id) => $(id).addEventListener("input", () => { slurm(); track("gpu_slurm"); }));
+
+  function flags() {
+    const defs = []; const re = /add_argument\(\s*"(--[\w-]+)"([^)]*)\)/g; let m;
+    while ((m = re.exec(F["train.py"] || ""))) { const d = /default=([^,)]+)/.exec(m[2]); const h = /help="([^"]+)"/.exec(m[2]); defs.push({ flag: m[1], def: d ? d[1].replace(/^"|"$/g, "") : "", help: h ? h[1] : "" }); }
+    $("flags").innerHTML = defs.map((d, i) => `<label for="f${i}">${esc(d.flag)}</label><input type="text" id="f${i}" data-flag="${esc(d.flag)}" value="${d.def === "None" ? "" : esc(d.def)}" placeholder="${d.def === "None" ? "(unset)" : ""}" title="${esc(d.help)}" style="width:96px">`).join("");
+    const draw = () => { const parts = [...document.querySelectorAll("#flags input")].filter((i) => i.value.trim() !== "").map((i) => i.dataset.flag + " " + i.value.trim()); const args = parts.join(" ").split(" ").filter(Boolean); $("cmd").innerHTML = `<span class="dim"># local</span>\npython train.py ${parts.join(" ")}\n\n<span class="dim"># container spec</span>\ncommand: ["python3", "train.py"]\nargs: [${args.map((a) => '"' + esc(a) + '"').join(", ")}]`; };
+    $("flags").addEventListener("input", () => { draw(); track("gpu_flags"); }); draw();
+  }
+
+  function viewer(name) {
+    $("fname").textContent = name; $("fview").textContent = F[name] || "";
+    document.querySelectorAll("#ftabs .chip").forEach((b) => b.setAttribute("aria-pressed", b.dataset.f === name));
+  }
+
+  Promise.all(NAMES.map(([n, f]) => fetch("files/" + f).then((r) => { if (!r.ok) throw new Error(f); return r.text(); }).then((t) => { F[n] = t; }))).then(() => {
+    const d = F["pytorch-gpu-deployment.yaml"], j = F["pytorch-distributed-job.yaml"];
+    dep = { replicas: +(/replicas:\s*(\d+)/.exec(d) || [0, 1])[1], gpu: +(/nvidia\.com\/gpu:\s*"(\d+)"/.exec(d) || [0, 1])[1] };
+    const mm = /Master:\s*\n\s*replicas:\s*(\d+)/.exec(j), ww = /Worker:\s*\n\s*replicas:\s*(\d+)/.exec(j);
+    job = { master: mm ? +mm[1] : 1, workers: ww ? +ww[1] : 1, gpu: +(/nvidia\.com\/gpu:\s*"(\d+)"/.exec(j) || [0, 1])[1] };
+    $("slurm").value = F["slurm.conf"].trim(); $("gres").value = F["gres.conf"].trim();
+    $("sb").value = (F["pytorch_job.sh"].split("\n").find((l) => l.includes("--gres")) || "").trim();
+    $("ftabs").innerHTML = NAMES.map(([n]) => `<button class="chip" data-f="${esc(n)}" aria-pressed="false">${esc(n)}</button>`).join("");
+    $("ftabs").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (b) { viewer(b.dataset.f); track("gpu_file"); } });
+    viewer("pytorch-gpu-deployment.yaml"); plan(); slurm(); flags(); window.__GPU_READY__ = true;
+  }).catch((e) => { $("plan").innerHTML = '<div class="status">The manifests did not load (' + esc(e.message) + ").</div>"; });
+})();
+
+</script>
+</body>
+</html>
